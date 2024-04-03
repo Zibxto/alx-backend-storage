@@ -6,6 +6,26 @@ from typing import Union
 import functools
 
 
+def call_history(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        input_key = f"{method.__qualname__}:inputs"  # Input list key
+        output_key = f"{method.__qualname__}:outputs"  # Output list key
+
+        # Append input arguments to the input list in Redis
+        self._redis.rpush(input_key, str(args))
+
+        # Execute the wrapped function to retrieve the output
+        output = method(self, *args, **kwargs)
+
+        # Append the output to the output list in Redis
+        self._redis.rpush(output_key, output)
+
+        return output  # Return the output obtained from the wrapped function
+
+    return wrapper
+
+
 def count_calls(method):
     """ counts how many times methods of the Cache class are called"""
     @functools.wraps(method)
@@ -27,6 +47,7 @@ class Cache:
         self._redis = redis.Redis()
         self._redis.flushdb()
 
+    @call_history
     @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """ takes a data argument and returns a string"""
