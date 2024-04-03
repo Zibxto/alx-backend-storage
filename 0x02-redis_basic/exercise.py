@@ -6,6 +6,21 @@ from typing import Union
 import functools
 
 
+def count_calls(method):
+    """ counts how many times methods of the Cache class are called"""
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        """wrapper function"""
+        # Get the qualified name of the method
+        key = method.__qualname__
+        # Generate the key for \storing the call count
+        count_key = "{}_calls".format(key)
+        self._redis.incr(count_key)  # Increment the call count
+        # Call the original method and return its result
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
 def call_history(method):
     """store the history of inputs and outputs for a particular function"""
     @functools.wraps(method)
@@ -30,19 +45,23 @@ def call_history(method):
     return wrapper
 
 
-def count_calls(method):
-    """ counts how many times methods of the Cache class are called"""
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        """wrapper function"""
-        # Get the qualified name of the method
-        key = method.__qualname__
-        # Generate the key for \storing the call count
-        count_key = "{}_calls".format(key)
-        self._redis.incr(count_key)  # Increment the call count
-        # Call the original method and return its result
-        return method(self, *args, **kwargs)
-    return wrapper
+def replay(method):
+    """Display the history of calls for a particular function."""
+    inputs_key = f"{method.__qualname__}:inputs"
+    outputs_key = f"{method.__qualname__}:outputs"
+
+    inputs = cache._redis.lrange(inputs_key, 0, -1)
+    outputs = cache._redis.lrange(outputs_key, 0, -1)
+
+    num_calls = len(inputs)
+
+    print(f"{method.__qualname__} was called {num_calls} times:")
+
+    for input_args, output in zip(inputs, outputs):
+        # Convert input_args from bytes to string
+        # and eval to get the original tuple
+        input_args = eval(input_args.decode("utf-8"))
+        print(f"{method.__qualname__}{input_args} -> {output.decode('utf-8')}")
 
 
 class Cache:
