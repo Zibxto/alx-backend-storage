@@ -7,10 +7,14 @@ import functools
 
 
 def call_history(method):
+    """store the history of inputs and outputs for a particular function"""
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        input_key = f"{method.__qualname__}:inputs"  # Input list key
-        output_key = f"{method.__qualname__}:outputs"  # Output list key
+        """wrapper function"""
+        # Input list key
+        input_key = "{}:inputs".format(method.__qualname__)
+        # Output list key
+        output_key = "{}:outputs".format(method.__qualname__)
 
         # Append input arguments to the input list in Redis
         self._redis.rpush(input_key, str(args))
@@ -30,6 +34,7 @@ def count_calls(method):
     """ counts how many times methods of the Cache class are called"""
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
+        """wrapper function"""
         # Get the qualified name of the method
         key = method.__qualname__
         # Generate the key for \storing the call count
