@@ -13,7 +13,7 @@ def count_calls(method):
         # Get the qualified name of the method
         key = method.__qualname__
         # Generate the key for \storing the call count
-        count_key = f"{key}_calls"
+        count_key = "{}_calls".format(key)
         self._redis.incr(count_key)  # Increment the call count
         # Call the original method and return its result
         return method(self, *args, **kwargs)
